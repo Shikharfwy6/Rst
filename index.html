@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>MSHYA Coin Shop</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <style>
+    body {
+      font-family: sans-serif;
+      background: #111;
+      color: #fff;
+      padding: 20px;
+    }
+    .shop-row {
+      display: flex;
+      justify-content: space-between;
+      background: #222;
+      margin: 10px 0;
+      padding: 15px;
+      border-radius: 10px;
+    }
+    .shop-amount {
+      font-weight: bold;
+    }
+    .shop-buy {
+      background: #00aaff;
+      color: #fff;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <h2>💰 MSHYA Coin Shop</h2>
+
+  <div class="shop-row">
+    <div class="shop-amount">50,000,000 MSHYA</div>
+    <button class="shop-buy" data-ton="1">Buy for 1 TON</button>
+  </div>
+  <div class="shop-row">
+    <div class="shop-amount">100,000,000 MSHYA</div>
+    <button class="shop-buy" data-ton="2">Buy for 2 TON</button>
+  </div>
+  <div class="shop-row">
+    <div class="shop-amount">500,000,000 MSHYA</div>
+    <button class="shop-buy" data-ton="10">Buy for 10 TON</button>
+  </div>
+
+ <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+<script>
+  // Supabase client create कर रहे हैं - नाम बदला गया है ताकि conflict न हो
+  const supabaseClient = supabase.createClient(
+    'https://vaxelepziqqpteyqokrc.supabase.co',
+    'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZheGVsZXB6aXFxcHRleXFva3JjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQwMTQ3NDcsImV4cCI6MjA2OTU5MDc0N30.tRTdbffdk2Xcq-2YxlZZM2TkYahuhJnrRjesKy-dptQ'
+  );
+
+  // Function to get Telegram User ID
+  function getTelegramUserId() {
+    if (window.Telegram && Telegram.WebApp && Telegram.WebApp.initDataUnsafe && Telegram.WebApp.initDataUnsafe.user) {
+      return Telegram.WebApp.initDataUnsafe.user.id.toString();
+    }
+    return null;
+  }
+
+  // 💰 Buy buttons पर listener
+  document.querySelectorAll('.shop-buy').forEach((button) => {
+    button.addEventListener('click', async () => {
+      const row = button.closest('.shop-row');
+      const amountText = row.querySelector('.shop-amount').innerText;
+      const mshyaAmount = parseInt(amountText.replace(/[^0-9]/g, ''));
+
+      const confirmed = confirm(`क्या आप ${mshyaAmount.toLocaleString()} MSHYA खरीदना चाहते हैं?`);
+      if (!confirmed) return;
+
+      const buyUserId = getTelegramUserId();
+
+      if (!buyUserId) {
+        alert('❌ Telegram से User ID नहीं मिली। कृपया Telegram Bot के अंदर गेम खोलें।');
+        return;
+      }
+
+      // 🔍 Supabase से user data निकालना
+      const { data: user, error } = await supabaseClient
+        .from('users')
+        .select('mshya')
+        .eq('id', buyUserId)
+        .single();
+
+      if (error || !user) {
+        alert('❌ User नहीं मिला Supabase में। हो सकता है आपने signup/register नहीं किया हो।');
+        return;
+      }
+
+      const newBalance = (user.mshya || 0) + mshyaAmount;
+
+      // ✅ Supabase में balance update करना
+      const { error: updateError } = await supabaseClient
+        .from('users')
+        .update({ mshya: newBalance })
+        .eq('id', buyUserId);
+
+      if (updateError) {
+        alert('❌ Balance update में error आया!');
+      } else {
+        alert(`✅ ${mshyaAmount.toLocaleString()} MSHYA coins आपके अकाउंट में जोड़ दिए गए!`);
+      }
+    });
+  });
+</script>
+</body>
+</html>
